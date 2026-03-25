@@ -15,7 +15,6 @@ Anti-cheat:
   2–5s   → 500  pts (Great)
   5–10s  → 100  pts (Good)
   >10s   → 0    pts (Too early)
-  Тип события совпал → ×1.5
 """
 
 import time
@@ -74,9 +73,7 @@ def score(prediction: Prediction, event_ts: float, event_type: str) -> ScoreResu
             rejected=True, reject_reason="normalised delta ≤ 0 (stream delay exploit)"
         )
 
-    # ── Type match ────────────────────────────────────────────────────
     type_match = prediction.event_type == event_type
-    bonus = 1.5 if type_match else 1.0
 
     # ── Scoring ───────────────────────────────────────────────────────
     if delta_raw <= 2:
@@ -88,7 +85,7 @@ def score(prediction: Prediction, event_ts: float, event_type: str) -> ScoreResu
     else:
         base, quality = 0,    "Too Early"
 
-    pts = int(base * bonus)
+    pts = base
 
     return ScoreResult(
         pts=pts, quality=quality,

@@ -1,6 +1,6 @@
 # PredictSport
 
-PredictSport is a local prototype game where the user watches a live sports video, predicts a scoring event, and receives points when the backend detector confirms the event.
+PredictSport is a local prototype game where the user watches a live sports video, predicts a scoring event, and receives points when the AI detector confirms the event.
 
 The repository is prepared in a clone-and-run format:
 - runtime model weights are already included in the repository
@@ -18,16 +18,50 @@ Supported modes right now:
 - `football`
 - `basketball`
 
+## Game Mechanics
+
+The game loop is simple:
+
+1. Open one of the available sports streams.
+2. Click `Predict Now` before the scoring moment happens.
+3. The frontend sends the current video timestamp, selected event type, measured stream delay, and client id to the backend.
+4. The backend waits for the next detected event for that match.
+5. When an event is detected, the prediction is scored and the result is pushed back to the browser over WebSocket.
+6. If the prediction earns points, they are added to the player total and reflected in the leaderboard.
+
+Current gameplay details:
+
+- The supported event type is currently `goal` for both football and basketball.
+- The predict button is locked for 10 seconds after a successful click on the frontend.
+- The backend also enforces a 10 second server-side rate limit per client.
+- The leaderboard is local to the running app session and includes a few seeded fake players plus the current user.
+
+## Scoring
+
+Scoring is based on how early the prediction was made relative to the detected event timestamp.
+
+- `0-2s` before the event: `1000` points, `Perfect`
+- `2-5s` before the event: `500` points, `Great`
+- `5-10s` before the event: `100` points, `Good`
+- `>10s` before the event: `0` points, `Too Early`
+
+
+Predictions can also be rejected. The current backend rejects a prediction when:
+
+- the click timestamp is already after the detected event timestamp
+- the delay-normalized prediction timing is not positive, which protects against stream-delay abuse
+- the client hits the server-side rate limit
+
 ## Stack
 
-- Frontend: plain HTML/CSS/JS in [frontend/index.html](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/frontend/index.html)
-- Backend API: FastAPI in [backend/main.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/main.py)
-- Video ingestion: `yt-dlp` + OpenCV in [backend/stream.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/stream.py)
+- Frontend: plain HTML/CSS/JS in [frontend/index.html](/frontend/index.html)
+- Backend API: FastAPI in [backend/main.py](/backend/main.py)
+- Video ingestion: `yt-dlp` + OpenCV in [backend/stream.py](/backend/stream.py)
 - Detection:
   - balls are detected with YOLO / YOLOE
   - targets (football goal and basketball hoop/backboard) are detected with custom trained target models
-  in [backend/detector.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/detector.py)
-- State / event cache: Redis via [docker-compose.yml](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/docker-compose.yml)
+  in [backend/detector.py](/backend/detector.py)
+- State / event cache: Redis via [docker-compose.yml](/docker-compose.yml)
 
 ## Repository Layout
 
@@ -54,9 +88,9 @@ docker-compose.yml        # Redis
 
 The repository already contains the files required to run:
 
-- [yoloe-11s-seg.pt](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/yoloe-11s-seg.pt)
-- [football_target.pt](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/models/trained/football_target.pt)
-- [basketball_target.pt](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/models/trained/basketball_target.pt)
+- yoloe-11s-seg.pt
+- football_target.pt
+- basketball_target.pt
 
 No extra model training is required for normal use. Some Ultralytics open-vocabulary support files may still be fetched automatically on first run if they are not present locally.
 
@@ -67,7 +101,7 @@ No extra model training is required for normal use. Some Ultralytics open-vocabu
   - `football_target.pt` for football goals
   - `basketball_target.pt` for basketball rim / backboard targets
 - A scoring event is emitted when the detected ball enters the detected target area.
-- Debug frames that contain detections are saved to [backend/debug_frames](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/debug_frames).
+- Debug frames that contain detections are saved to [backend/debug_frames](/backend/debug_frames).
 
 ## Architecture
 
@@ -124,17 +158,17 @@ http://localhost:8000
 
 - The app serves the frontend directly from FastAPI.
 - Only the currently active match is processed.
-- Football and basketball streams are configured in [backend/stream.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/stream.py).
-- Debug frames that contain detections are saved to [backend/debug_frames](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/debug_frames).
+- Football and basketball streams are configured in [backend/stream.py](/backend/stream.py).
+- Debug frames that contain detections are saved to [backend/debug_frames](/backend/debug_frames).
 - The repository contains training utilities, but they are optional and not needed to run the app.
 
 ## Optional Training Utilities
 
 These files remain in the repository as developer tools:
 
-- [backend/train_targets.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/train_targets.py)
-- [backend/prepare_target_dataset.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/prepare_target_dataset.py)
-- [backend/import_label_studio_yolo.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/import_label_studio_yolo.py)
+- backend/train_targets.py
+- backend/prepare_target_dataset.py
+- backend/import_label_studio_yolo.py
 
 They are not required for end users.
 
