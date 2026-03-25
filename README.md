@@ -23,7 +23,10 @@ Supported modes right now:
 - Frontend: plain HTML/CSS/JS in [frontend/index.html](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/frontend/index.html)
 - Backend API: FastAPI in [backend/main.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/main.py)
 - Video ingestion: `yt-dlp` + OpenCV in [backend/stream.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/stream.py)
-- Detection: YOLOE + custom target models in [backend/detector.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/detector.py)
+- Detection:
+  - balls are detected with YOLO / YOLOE
+  - targets (football goal and basketball hoop/backboard) are detected with custom trained target models
+  in [backend/detector.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/detector.py)
 - State / event cache: Redis via [docker-compose.yml](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/docker-compose.yml)
 
 ## Repository Layout
@@ -35,9 +38,10 @@ frontend/
 backend/
   main.py                 # FastAPI app, websocket endpoints, static serving
   stream.py               # YouTube stream access and frame generator
-  detector.py             # Ball + target detection and event logic
+  detector.py             # YOLO ball detection + custom target-model detection + event logic
   scoring.py              # Prediction scoring logic
   requirements.txt        # Python dependencies
+  debug_frames/           # Saved debug frames with detections
   models/trained/
     football_target.pt    # Included runtime target model
     basketball_target.pt  # Included runtime target model
@@ -56,15 +60,25 @@ The repository already contains the files required to run:
 
 No extra model training is required for normal use. Some Ultralytics open-vocabulary support files may still be fetched automatically on first run if they are not present locally.
 
+## Detection Pipeline
+
+- Ball detection is handled by YOLO / YOLOE.
+- Target detection is handled by custom trained models included in the repository:
+  - `football_target.pt` for football goals
+  - `basketball_target.pt` for basketball rim / backboard targets
+- A scoring event is emitted when the detected ball enters the detected target area.
+- Debug frames that contain detections are saved to [backend/debug_frames](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/debug_frames).
+
 ## Architecture
 
 1. The browser opens the UI from FastAPI.
 2. The frontend requests match metadata from `/matches`.
 3. The backend opens the configured YouTube stream through `yt-dlp`.
 4. OpenCV reads frames from the direct stream URL.
-5. The detector searches for the ball and the target and emits a `goal` event when the ball enters the target area.
-6. Events and scoring results are pushed to the browser over WebSocket.
-7. Redis is used for lightweight shared state and event delivery.
+5. YOLO / YOLOE detects the ball, while the football and basketball targets are detected by the included custom trained target models.
+6. The detector emits a `goal` event when the ball enters the target area.
+7. Events and scoring results are pushed to the browser over WebSocket.
+8. Redis is used for lightweight shared state and event delivery.
 
 ## Quick Start
 
@@ -111,6 +125,7 @@ http://localhost:8000
 - The app serves the frontend directly from FastAPI.
 - Only the currently active match is processed.
 - Football and basketball streams are configured in [backend/stream.py](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/stream.py).
+- Debug frames that contain detections are saved to [backend/debug_frames](/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/debug_frames).
 - The repository contains training utilities, but they are optional and not needed to run the app.
 
 ## Optional Training Utilities

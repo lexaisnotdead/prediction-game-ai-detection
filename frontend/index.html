@@ -10,36 +10,31 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #07111d;
-  --bg-soft: #0d1b2a;
-  --panel: rgba(8, 17, 31, 0.82);
-  --panel-strong: rgba(12, 24, 42, 0.94);
-  --line: rgba(116, 183, 255, 0.18);
-  --line-strong: rgba(116, 183, 255, 0.34);
-  --text: #edf6ff;
-  --muted: #89a2bc;
-  --muted-2: #55708d;
-  --cyan: #4de2ff;
-  --cyan-strong: #00c6ff;
-  --orange: #ff8d3b;
-  --amber: #ffbe3b;
-  --green: #26d07c;
-  --red: #ff6470;
+  --bg: #090b0f;
+  --bg-soft: #11151c;
+  --panel: rgba(18, 23, 30, 0.92);
+  --panel-strong: rgba(14, 18, 24, 0.98);
+  --panel-elevated: rgba(24, 30, 39, 0.98);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #f5f7fb;
+  --muted: #99a3b2;
+  --muted-2: #677180;
+  --cyan: #5ab8ff;
+  --cyan-strong: #82ccff;
+  --orange: #ff9b54;
+  --amber: #ffc85c;
+  --green: #3fd08c;
+  --red: #ff6878;
   --radius: 18px;
-  --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
 }
-html { background:
-  radial-gradient(circle at top left, rgba(77,226,255,0.14), transparent 28%),
-  radial-gradient(circle at top right, rgba(255,141,59,0.16), transparent 24%),
-  linear-gradient(180deg, #08111e 0%, #07111d 48%, #050d17 100%);
-}
+html { background: var(--bg); }
 body {
   min-height: 100vh;
   color: var(--text);
   font: 14px/1.45 "Chakra Petch", system-ui, sans-serif;
-  background:
-    linear-gradient(120deg, rgba(255,255,255,0.02), transparent 30%),
-    linear-gradient(180deg, rgba(77,226,255,0.04), transparent 35%);
+  background: var(--bg);
 }
 a { color: inherit; }
 button, input { font: inherit; }
@@ -57,10 +52,7 @@ button, input { font: inherit; }
   padding: 18px 22px;
   border: 1px solid var(--line);
   border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(77,226,255,0.08), transparent 35%),
-    linear-gradient(315deg, rgba(255,141,59,0.08), transparent 35%),
-    var(--panel);
+  background: rgba(16, 20, 27, 0.96);
   box-shadow: var(--shadow);
   backdrop-filter: blur(16px);
 }
@@ -78,12 +70,12 @@ button, input { font: inherit; }
   display: grid;
   place-items: center;
   font: 800 28px/1 "Oxanium", sans-serif;
-  color: #05101d;
-  background:
-    linear-gradient(135deg, var(--cyan), #87f7ff 40%, var(--orange));
+  color: var(--text);
+  background: #191f28;
+  border: 1px solid rgba(255,255,255,0.08);
   box-shadow:
-    0 10px 24px rgba(77, 226, 255, 0.28),
-    inset 0 1px 0 rgba(255,255,255,0.5);
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .brand-copy h1 {
@@ -111,7 +103,7 @@ button, input { font: inherit; }
   padding: 10px 14px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
@@ -136,9 +128,7 @@ button, input { font: inherit; }
 .card {
   border: 1px solid var(--line);
   border-radius: 24px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 35%),
-    var(--panel);
+  background: var(--panel);
   box-shadow: var(--shadow);
   backdrop-filter: blur(16px);
 }
@@ -180,8 +170,8 @@ button, input { font: inherit; }
   align-self: center;
   padding: 10px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(38,208,124,0.25);
-  background: rgba(38,208,124,0.08);
+  border: 1px solid rgba(63,208,140,0.22);
+  background: rgba(63,208,140,0.08);
   color: var(--green);
   font-size: 12px;
   font-weight: 700;
@@ -202,9 +192,7 @@ button, input { font: inherit; }
   padding: 16px 20px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 55%),
-    rgba(255,255,255,0.02);
+  background: rgba(255,255,255,0.02);
   color: var(--text);
   cursor: pointer;
   text-align: left;
@@ -218,11 +206,9 @@ button, input { font: inherit; }
 }
 
 .tab.active {
-  border-color: rgba(77,226,255,0.55);
-  background:
-    linear-gradient(135deg, rgba(77,226,255,0.18), rgba(255,141,59,0.12)),
-    rgba(255,255,255,0.04);
-  box-shadow: 0 18px 36px rgba(0, 198, 255, 0.15);
+  border-color: rgba(90,184,255,0.52);
+  background: rgba(90,184,255,0.10);
+  box-shadow: inset 0 0 0 1px rgba(90,184,255,0.18);
 }
 
 .tab.unavailable {
@@ -277,18 +263,7 @@ button, input { font: inherit; }
   overflow: hidden;
   border-radius: 22px;
   border: 1px solid var(--line);
-  background:
-    radial-gradient(circle at top, rgba(77,226,255,0.12), transparent 30%),
-    linear-gradient(180deg, #081321, #050d17);
-}
-
-.video-shell::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 140px;
-  background: linear-gradient(180deg, transparent, rgba(5,13,23,0.85));
-  pointer-events: none;
+  background: #05070b;
 }
 
 .video-wrap {
@@ -320,8 +295,8 @@ button, input { font: inherit; }
   gap: 8px;
   padding: 9px 12px;
   border-radius: 999px;
-  background: rgba(5, 13, 23, 0.72);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(10, 12, 16, 0.54);
+  border: 1px solid rgba(255,255,255,0.07);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
@@ -339,21 +314,19 @@ button, input { font: inherit; }
   animation: pulse 1.3s infinite;
 }
 
-.video-stats {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
+.video-meta-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  margin-top: 14px;
 }
 
 .video-stat {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 16px;
-  background: rgba(5, 13, 23, 0.74);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(10, 12, 16, 0.42);
+  border: 1px solid rgba(255,255,255,0.05);
+  backdrop-filter: blur(8px);
 }
 
 .video-stat span {
@@ -367,7 +340,7 @@ button, input { font: inherit; }
 .video-stat strong {
   display: block;
   margin-top: 5px;
-  font: 700 19px/1 "Oxanium", sans-serif;
+  font: 700 17px/1 "Oxanium", sans-serif;
 }
 
 .video-unavailable {
@@ -391,7 +364,7 @@ button, input { font: inherit; }
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
 }
 
 .dot {
@@ -436,9 +409,7 @@ button, input { font: inherit; }
   padding: 16px;
   border-radius: 18px;
   border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 45%),
-    var(--panel-strong);
+  background: var(--panel-strong);
 }
 
 .block-title {
@@ -492,8 +463,8 @@ button, input { font: inherit; }
 
 .et-btn.sel {
   color: var(--text);
-  border-color: rgba(255,141,59,0.38);
-  background: linear-gradient(180deg, rgba(255,141,59,0.16), rgba(255,141,59,0.06));
+  border-color: rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.07);
 }
 
 .et-icon {
@@ -508,21 +479,21 @@ button, input { font: inherit; }
   padding: 17px 16px;
   border: none;
   border-radius: 18px;
-  color: #07111d;
+  color: #f7f8fb;
   font: 800 17px/1 "Oxanium", sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  background:
-    linear-gradient(135deg, #ffcf59 0%, var(--orange) 48%, #ff5d5d 100%);
-  box-shadow: 0 18px 36px rgba(255, 141, 59, 0.28);
+  background: #20262f;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
 }
 
 .pred-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 22px 42px rgba(255, 141, 59, 0.34);
-  filter: saturate(1.08);
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.34);
+  background: #272f3a;
 }
 
 .pred-btn:disabled {
@@ -531,7 +502,7 @@ button, input { font: inherit; }
 
 .pred-btn.locked {
   color: var(--green);
-  background: rgba(38,208,124,0.08);
+  background: rgba(63,208,140,0.08);
   border: 1px solid rgba(38,208,124,0.3);
   box-shadow: none;
 }
@@ -561,8 +532,8 @@ button, input { font: inherit; }
 .score-burst {
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(77,226,255,0.08);
-  border: 1px solid rgba(77,226,255,0.16);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
@@ -599,8 +570,8 @@ button, input { font: inherit; }
 }
 
 .lb-row.me {
-  border-color: rgba(77,226,255,0.3);
-  background: linear-gradient(135deg, rgba(77,226,255,0.14), rgba(77,226,255,0.04));
+  border-color: rgba(90,184,255,0.30);
+  background: rgba(90,184,255,0.08);
 }
 
 .lb-rank {
@@ -686,7 +657,6 @@ button, input { font: inherit; }
     <div class="hero-pillars">
       <div class="hero-pill">Mode<strong>Live Arena</strong></div>
       <div class="hero-pill">Engine<strong>YOLO Tracking</strong></div>
-      <div class="hero-pill">Queue<strong>Basketball First</strong></div>
     </div>
   </header>
 
@@ -714,21 +684,22 @@ button, input { font: inherit; }
             <div id="yt-player"></div>
             <div class="video-overlay">
               <div class="video-badge">Live Feed</div>
-              <div class="video-stats">
-                <div class="video-stat">
-                  <span>Sport</span>
-                  <strong id="video-sport">Waiting</strong>
-                </div>
-                <div class="video-stat">
-                  <span>Prediction</span>
-                  <strong id="video-type">Goal</strong>
-                </div>
-                <div class="video-stat">
-                  <span>Status</span>
-                  <strong id="video-status">Connecting</strong>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
+
+        <div class="video-meta-row">
+          <div class="video-stat">
+            <span>Sport</span>
+            <strong id="video-sport">Waiting</strong>
+          </div>
+          <div class="video-stat">
+            <span>Prediction</span>
+            <strong id="video-type">Goal</strong>
+          </div>
+          <div class="video-stat">
+            <span>Status</span>
+            <strong id="video-status">Connecting</strong>
           </div>
         </div>
 
