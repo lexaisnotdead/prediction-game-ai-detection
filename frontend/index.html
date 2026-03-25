@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PredictSport Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Oxanium:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #07111d;
+  --bg-soft: #0d1b2a;
+  --panel: rgba(8, 17, 31, 0.82);
+  --panel-strong: rgba(12, 24, 42, 0.94);
+  --line: rgba(116, 183, 255, 0.18);
+  --line-strong: rgba(116, 183, 255, 0.34);
+  --text: #edf6ff;
+  --muted: #89a2bc;
+  --muted-2: #55708d;
+  --cyan: #4de2ff;
+  --cyan-strong: #00c6ff;
+  --orange: #ff8d3b;
+  --amber: #ffbe3b;
+  --green: #26d07c;
+  --red: #ff6470;
+  --radius: 18px;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+html { background:
+  radial-gradient(circle at top left, rgba(77,226,255,0.14), transparent 28%),
+  radial-gradient(circle at top right, rgba(255,141,59,0.16), transparent 24%),
+  linear-gradient(180deg, #08111e 0%, #07111d 48%, #050d17 100%);
+}
+body {
+  min-height: 100vh;
+  color: var(--text);
+  font: 14px/1.45 "Chakra Petch", system-ui, sans-serif;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,0.02), transparent 30%),
+    linear-gradient(180deg, rgba(77,226,255,0.04), transparent 35%);
+}
+a { color: inherit; }
+button, input { font: inherit; }
+
+.shell {
+  width: min(1320px, calc(100vw - 32px));
+  margin: 18px auto 28px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(77,226,255,0.08), transparent 35%),
+    linear-gradient(315deg, rgba(255,141,59,0.08), transparent 35%),
+    var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font: 800 28px/1 "Oxanium", sans-serif;
+  color: #05101d;
+  background:
+    linear-gradient(135deg, var(--cyan), #87f7ff 40%, var(--orange));
+  box-shadow:
+    0 10px 24px rgba(77, 226, 255, 0.28),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.brand-copy h1 {
+  font: 800 30px/1 "Oxanium", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.brand-copy p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero-pillars {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.hero-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hero-pill strong {
+  color: var(--text);
+  margin-left: 6px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) 380px;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.stack { display: flex; flex-direction: column; gap: 18px; }
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 35%),
+    var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.main-card {
+  padding: 20px;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section-title {
+  margin-top: 6px;
+  font: 700 28px/1.05 "Oxanium", sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.section-sub {
+  margin-top: 6px;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.status-chip {
+  align-self: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(38,208,124,0.25);
+  background: rgba(38,208,124,0.08);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.match-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tab {
+  position: relative;
+  min-width: 180px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 55%),
+    rgba(255,255,255,0.02);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.tab:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+}
+
+.tab.active {
+  border-color: rgba(77,226,255,0.55);
+  background:
+    linear-gradient(135deg, rgba(77,226,255,0.18), rgba(255,141,59,0.12)),
+    rgba(255,255,255,0.04);
+  box-shadow: 0 18px 36px rgba(0, 198, 255, 0.15);
+}
+
+.tab.unavailable {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.tab-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tab-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.tab-live {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tab.active .tab-live {
+  background: rgba(38,208,124,0.14);
+  color: var(--green);
+}
+
+.tab-name {
+  margin-top: 10px;
+  font: 700 22px/1 "Oxanium", sans-serif;
+  text-transform: uppercase;
+}
+
+.tab-meta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.video-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at top, rgba(77,226,255,0.12), transparent 30%),
+    linear-gradient(180deg, #081321, #050d17);
+}
+
+.video-shell::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 140px;
+  background: linear-gradient(180deg, transparent, rgba(5,13,23,0.85));
+  pointer-events: none;
+}
+
+.video-wrap {
+  position: relative;
+  padding-top: 56.25%;
+}
+
+.video-wrap iframe,
+.video-wrap #yt-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.video-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: rgba(5, 13, 23, 0.72);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.video-badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 14px rgba(255,100,112,0.9);
+  animation: pulse 1.3s infinite;
+}
+
+.video-stats {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.video-stat {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(5, 13, 23, 0.74);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.video-stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.video-stat strong {
+  display: block;
+  margin-top: 5px;
+  font: 700 19px/1 "Oxanium", sans-serif;
+}
+
+.video-unavailable {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  background: rgba(5, 13, 23, 0.86);
+  z-index: 4;
+}
+
+.detect-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(38,208,124,0.8);
+  animation: pulse 1.8s infinite;
+}
+
+.dot.event {
+  background: var(--amber);
+  box-shadow: 0 0 16px rgba(255,190,59,0.9);
+  animation-duration: .6s;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(.72); opacity: .35; }
+}
+
+.detect-copy strong { color: var(--amber); }
+.detect-kicker {
+  color: var(--muted-2);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.panel {
+  padding: 18px;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.block {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 45%),
+    var(--panel-strong);
+}
+
+.block-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.latency-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.latency-label { color: var(--muted); }
+.latency-val {
+  color: var(--cyan);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.et-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.et-btn {
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.et-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+}
+
+.et-btn.sel {
+  color: var(--text);
+  border-color: rgba(255,141,59,0.38);
+  background: linear-gradient(180deg, rgba(255,141,59,0.16), rgba(255,141,59,0.06));
+}
+
+.et-icon {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 24px;
+}
+
+.pred-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 17px 16px;
+  border: none;
+  border-radius: 18px;
+  color: #07111d;
+  font: 800 17px/1 "Oxanium", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background:
+    linear-gradient(135deg, #ffcf59 0%, var(--orange) 48%, #ff5d5d 100%);
+  box-shadow: 0 18px 36px rgba(255, 141, 59, 0.28);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.pred-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 42px rgba(255, 141, 59, 0.34);
+  filter: saturate(1.08);
+}
+
+.pred-btn:disabled {
+  cursor: not-allowed;
+}
+
+.pred-btn.locked {
+  color: var(--green);
+  background: rgba(38,208,124,0.08);
+  border: 1px solid rgba(38,208,124,0.3);
+  box-shadow: none;
+}
+
+.pred-status {
+  min-height: 18px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.score-shell {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.score-val {
+  font: 800 54px/.92 "Oxanium", sans-serif;
+  color: var(--cyan);
+  letter-spacing: -0.04em;
+  transition: color .35s ease;
+}
+
+.score-burst {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(77,226,255,0.08);
+  border: 1px solid rgba(77,226,255,0.16);
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.score-last {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: var(--muted);
+}
+
+.pts-good { color: var(--green); font-weight: 700; }
+.pts-ok { color: var(--amber); font-weight: 700; }
+.pts-miss { color: var(--red); font-weight: 700; }
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.lb-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.025);
+}
+
+.lb-row.me {
+  border-color: rgba(77,226,255,0.3);
+  background: linear-gradient(135deg, rgba(77,226,255,0.14), rgba(77,226,255,0.04));
+}
+
+.lb-rank {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.lb-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-score {
+  color: var(--green);
+  font: 700 19px/1 "Oxanium", sans-serif;
+}
+
+.side-note {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.notif {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  max-width: 320px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid;
+  font-weight: 600;
+  z-index: 999;
+  transform: translateX(360px);
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.notif.show { transform: translateX(0); }
+.notif.success { background: rgba(38,208,124,0.14); border-color: rgba(38,208,124,0.36); color: #7cf0af; }
+.notif.warn { background: rgba(255,190,59,0.16); border-color: rgba(255,190,59,0.36); color: #ffd476; }
+.notif.error { background: rgba(255,100,112,0.16); border-color: rgba(255,100,112,0.36); color: #ff9aa2; }
+.notif.info { background: rgba(77,226,255,0.14); border-color: rgba(77,226,255,0.36); color: #91efff; }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .shell { width: min(100vw - 16px, 1320px); margin-top: 8px; }
+  .topbar, .main-card, .panel { padding: 16px; }
+  .topbar { flex-direction: column; align-items: stretch; }
+  .hero-pillars { justify-content: flex-start; }
+  .section-head { flex-direction: column; }
+  .video-stats { grid-template-columns: 1fr; }
+  .match-tabs { flex-direction: column; }
+  .tab { min-width: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="notif" id="notif"></div>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">PS</div>
+      <div class="brand-copy">
+        <h1>PredictSport Arena</h1>
+        <p>Real-time sports prediction game</p>
+      </div>
+    </div>
+    <div class="hero-pillars">
+      <div class="hero-pill">Mode<strong>Live Arena</strong></div>
+      <div class="hero-pill">Engine<strong>YOLO Tracking</strong></div>
+      <div class="hero-pill">Queue<strong>Basketball First</strong></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="stack">
+      <section class="card main-card">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Live Match Room</div>
+            <div class="section-title">Pick The Moment Before The Play Hits</div>
+            <div class="section-sub">Watch the stream, time the event, and beat the board with cleaner predictions than everyone else in the arena.</div>
+          </div>
+          <div class="status-chip">Active Detection</div>
+        </div>
+
+        <div class="match-tabs" id="match-tabs"></div>
+
+        <div class="video-shell">
+          <div class="video-wrap" id="video-wrap">
+            <div class="video-unavailable" id="video-unavailable" style="display:none">
+              <span style="font-size:34px">📡</span>
+              <span>Stream currently unavailable</span>
+              <span style="font-size:12px;opacity:.7">Return when the match goes live</span>
+            </div>
+            <div id="yt-player"></div>
+            <div class="video-overlay">
+              <div class="video-badge">Live Feed</div>
+              <div class="video-stats">
+                <div class="video-stat">
+                  <span>Sport</span>
+                  <strong id="video-sport">Waiting</strong>
+                </div>
+                <div class="video-stat">
+                  <span>Prediction</span>
+                  <strong id="video-type">Goal</strong>
+                </div>
+                <div class="video-stat">
+                  <span>Status</span>
+                  <strong id="video-status">Connecting</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detect-bar">
+          <div class="dot" id="dot"></div>
+          <div class="detect-copy">
+            <div id="detect-text">YOLO monitoring · connecting...</div>
+            <div class="detect-kicker">Arena telemetry and event stream</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card panel">
+        <div class="panel-grid">
+          <div class="block">
+            <div class="block-title">Stream Delay</div>
+            <div class="latency-row">
+              <span class="latency-label">Measured delay</span>
+              <span class="latency-val" id="latency-val">calibrating...</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-title">Event Type</div>
+            <div class="et-grid" id="et-grid"></div>
+          </div>
+
+          <div class="block">
+            <div class="block-title">Prediction Trigger</div>
+            <button class="pred-btn" id="pred-btn" onclick="handlePredict()">Predict Now</button>
+            <div class="pred-status" id="pred-status"></div>
+          </div>
+
+          <div class="block">
+            <div class="block-title">Your Score</div>
+            <div class="score-shell">
+              <div class="score-val" id="score-val">0</div>
+              <div class="score-burst">Live points</div>
+            </div>
+            <div class="score-last" id="score-last" style="display:none">
+              <span id="last-pts"></span>
+              <span id="last-detail"></span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-title">Leaderboard</div>
+            <div class="lb-list" id="leaderboard"></div>
+            <div class="side-note">Climb the board by predicting the event before the detector confirms it.</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const HTTP_BASE = window.location.origin.startsWith("http")
+  ? window.location.origin
+  : "http://localhost:8000";
+const WS_BASE = `${HTTP_BASE.replace(/^http/, "ws")}/ws`;
+const API = HTTP_BASE;
+const PREDICT_LOCK_MS = 10_000;
+const FAKE_PLAYERS = [
+  { id: "p1", name: "NovaPulse", score: 4200 },
+  { id: "p2", name: "ClutchFrame", score: 3100 },
+  { id: "p3", name: "EchoDraft", score: 2650 },
+  { id: "p4", name: "ZeroPing", score: 1800 },
+  { id: "p5", name: "PixelRush", score: 950 },
+];
+
+const S = {
+  clientId: crypto.randomUUID(),
+  playerName: "You",
+  matchId: null,
+  sport: null,
+  selectedType: null,
+  score: 0,
+  streamDelay: 2.0,
+  prediction: null,
+  predictLockTimer: null,
+  predictLockUntil: 0,
+  predictCountdownTimer: null,
+  player: null,
+  ws: null,
+  leaderboard: [],
+  matches: {},
+};
+
+const VIDEO_IDS = {
+  football: "hzR3qPMTQzQ",
+  basketball: "LPDnemFoqVk",
+};
+
+let ytReady = false;
+function onYouTubeIframeAPIReady() {
+  ytReady = true;
+  initLeaderboard();
+  loadMatches();
+}
+
+function setVideoMeta() {
+  document.getElementById("video-sport").textContent = S.sport ? S.sport.toUpperCase() : "Waiting";
+  document.getElementById("video-type").textContent = S.selectedType ? S.selectedType.toUpperCase() : "Goal";
+  document.getElementById("video-status").textContent = S.ws && S.ws.readyState === WebSocket.OPEN ? "Connected" : "Connecting";
+}
+
+function loadPlayer(matchId) {
+  const vid = VIDEO_IDS[matchId];
+  const startOffset = Number(S.matches[matchId]?.start_offset || 0);
+  if (S.player) {
+    S.player.loadVideoById({ videoId: vid, startSeconds: startOffset });
+    return;
+  }
+  S.player = new YT.Player("yt-player", {
+    height: "100%",
+    width: "100%",
+    videoId: vid,
+    playerVars: {
+      controls: 1,
+      rel: 0,
+      playsinline: 1,
+      origin: HTTP_BASE,
+      start: Math.floor(startOffset),
+    },
+    events: {
+      onReady: () => {
+        calibrateDelay();
+        setVideoMeta();
+      },
+    },
+  });
+}
+
+async function loadMatches() {
+  let matches;
+  try {
+    const r = await fetch(`${API}/matches`);
+    matches = await r.json();
+    S.matches = matches;
+  } catch (e) {
+    notify("Cannot reach backend. Is the server running?", "error");
+    return;
+  }
+
+  const tabs = document.getElementById("match-tabs");
+  const icons = { football: "⚽", basketball: "🏀" };
+  tabs.innerHTML = "";
+
+  const entries = Object.entries(matches).sort(([aId, a], [bId, b]) => {
+    const ap = a.sport === "basketball" ? 0 : 1;
+    const bp = b.sport === "basketball" ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    if (a.available !== b.available) return a.available ? -1 : 1;
+    return aId.localeCompare(bId);
+  });
+
+  for (const [id, info] of entries) {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (info.available ? "" : " unavailable");
+    btn.title = info.available ? info.label : "Stream unavailable";
+    btn.innerHTML = `
+      <div class="tab-top">
+        <span class="tab-icon">${icons[info.sport] || "🎮"}</span>
+        <span class="tab-live">${info.available ? "Live" : "Offline"}</span>
+      </div>
+      <div class="tab-name">${id}</div>
+      <div class="tab-meta">${info.sport}</div>
+    `;
+    if (info.available) btn.onclick = () => selectMatch(id, info.sport);
+    tabs.appendChild(btn);
+  }
+
+  const first = entries.find(([, v]) => v.available && v.sport === "basketball")
+    || entries.find(([, v]) => v.available);
+  if (first) selectMatch(first[0], first[1].sport);
+}
+
+function selectMatch(matchId, sport) {
+  S.matchId = matchId;
+  S.sport = sport;
+
+  document.querySelectorAll(".tab").forEach((t) =>
+    t.classList.toggle("active", t.querySelector(".tab-name")?.textContent === matchId)
+  );
+
+  loadPlayer(matchId);
+  renderEventTypes(sport);
+  connectWS(matchId);
+  setVideoMeta();
+  document.getElementById("video-unavailable").style.display = "none";
+}
+
+const EVENT_DEFS = {
+  football: [{ type: "goal", icon: "⚽", label: "Goal" }],
+  basketball: [{ type: "goal", icon: "🏀", label: "Goal" }],
+};
+
+function renderEventTypes(sport) {
+  const defs = EVENT_DEFS[sport] || [];
+  const grid = document.getElementById("et-grid");
+  grid.innerHTML = defs.map((d, i) => `
+    <div class="et-btn ${i === 0 ? "sel" : ""}" onclick="selectType('${d.type}', this)">
+      <span class="et-icon">${d.icon}</span>${d.label}
+    </div>
+  `).join("");
+  S.selectedType = defs[0]?.type;
+  setVideoMeta();
+}
+
+function selectType(type, el) {
+  S.selectedType = type;
+  document.querySelectorAll(".et-btn").forEach((b) => b.classList.remove("sel"));
+  el.classList.add("sel");
+  setVideoMeta();
+}
+
+function calibrateDelay() {
+  if (!S.ws) return;
+  const samples = [];
+  let done = 0;
+  const ROUNDS = 5;
+
+  const run = () => {
+    const t0 = performance.now();
+    S.ws.send("ping");
+    const orig = S.ws.onmessage;
+    S.ws.onmessage = (e) => {
+      if (e.data === "pong") {
+        samples.push(performance.now() - t0);
+        done++;
+        S.ws.onmessage = orig;
+        if (done < ROUNDS) setTimeout(run, 150);
+        else finalize();
+      } else {
+        orig && orig(e);
+      }
+    };
+  };
+
+  const finalize = () => {
+    const rtt = samples.reduce((a, b) => a + b, 0) / samples.length;
+    S.streamDelay = 2.2 + (rtt / 1000);
+    document.getElementById("latency-val").textContent =
+      `~${S.streamDelay.toFixed(1)}s (RTT ${Math.round(rtt)}ms)`;
+  };
+
+  run();
+}
+
+function connectWS(matchId) {
+  if (S.ws) {
+    S.ws.close();
+    S.ws = null;
+  }
+
+  const url = `${WS_BASE}/${matchId}/${S.clientId}`;
+  S.ws = new WebSocket(url);
+  setVideoMeta();
+
+  S.ws.onopen = () => {
+    calibrateDelay();
+    document.getElementById("detect-text").textContent = "YOLO monitoring · connected";
+    document.getElementById("video-status").textContent = "Connected";
+  };
+
+  S.ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === "event") onEventDetected(msg);
+    else if (msg.type === "score_result") onScoreResult(msg);
+  };
+
+  S.ws.onclose = () => {
+    document.getElementById("detect-text").textContent = "WebSocket disconnected";
+    document.getElementById("video-status").textContent = "Reconnecting";
+    setTimeout(() => { if (S.matchId === matchId) connectWS(matchId); }, 3000);
+  };
+}
+
+function onEventDetected(msg) {
+  const dot = document.getElementById("dot");
+  dot.className = "dot event";
+  document.getElementById("detect-text").innerHTML =
+    `<strong>${msg.event_type.toUpperCase()}</strong> detected @ ${msg.event_ts}s and pushed to the arena feed`;
+  document.getElementById("video-status").textContent = "Event Locked";
+  notify(`Event: ${msg.event_type} @ ${msg.event_ts}s`, "warn");
+
+  setTimeout(() => {
+    dot.className = "dot";
+    document.getElementById("detect-text").textContent = "YOLO monitoring · watching...";
+    document.getElementById("video-status").textContent = "Connected";
+  }, 4000);
+}
+
+function onScoreResult(msg) {
+  if (msg.rejected) {
+    notify(`Rejected: ${msg.reject_reason}`, "error");
+    return;
+  }
+
+  S.score += msg.pts;
+  updateLeaderboardScore(S.clientId, S.playerName, S.score);
+  const sv = document.getElementById("score-val");
+  sv.textContent = S.score.toLocaleString();
+  sv.style.color = "var(--green)";
+  setTimeout(() => { sv.style.color = "var(--cyan)"; }, 700);
+
+  const sl = document.getElementById("score-last");
+  sl.style.display = "block";
+  const cls = msg.pts >= 1000 ? "pts-good" : msg.pts >= 400 ? "pts-ok" : "pts-miss";
+  document.getElementById("last-pts").className = cls;
+  document.getElementById("last-pts").textContent = `+${msg.pts.toLocaleString()} ${msg.quality} `;
+  document.getElementById("last-detail").textContent =
+    `Δ=${msg.delta_raw}s · norm=${msg.delta_norm}s${msg.type_match ? " · type ✓" : ""}`;
+
+  notify(`${msg.quality}  +${msg.pts} pts  Δ=${msg.delta_raw}s`, msg.pts >= 500 ? "success" : "info");
+}
+
+async function handlePredict() {
+  if (!S.player || !S.matchId) return notify("Select a match first", "warn");
+  if (S.prediction) return notify("Already predicted this round!", "warn");
+
+  const predictedOffset = S.player.getCurrentTime();
+  const body = {
+    match_id: S.matchId,
+    event_type: S.selectedType,
+    predicted_offset: predictedOffset,
+    stream_delay: S.streamDelay,
+    client_id: S.clientId,
+  };
+
+  try {
+    const r = await fetch(`${API}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+
+    if (!r.ok) {
+      notify(data.detail || "Error", "error");
+      return;
+    }
+
+    S.prediction = body;
+    lockBtn(predictedOffset);
+    notify(`Prediction: ${S.selectedType} @ ${predictedOffset.toFixed(1)}s`, "info");
+  } catch (e) {
+    notify("Network error", "error");
+  }
+}
+
+function lockBtn(offset) {
+  if (S.predictLockTimer) clearTimeout(S.predictLockTimer);
+  if (S.predictCountdownTimer) clearInterval(S.predictCountdownTimer);
+
+  const b = document.getElementById("pred-btn");
+  b.disabled = true;
+  b.className = "pred-btn locked";
+  S.predictLockUntil = Date.now() + PREDICT_LOCK_MS;
+
+  updatePredictCountdown(offset);
+  S.predictCountdownTimer = setInterval(() => {
+    updatePredictCountdown(offset);
+  }, 250);
+
+  S.predictLockTimer = setTimeout(() => {
+    S.prediction = null;
+    S.predictLockTimer = null;
+    S.predictLockUntil = 0;
+    if (S.predictCountdownTimer) {
+      clearInterval(S.predictCountdownTimer);
+      S.predictCountdownTimer = null;
+    }
+    unlockBtn();
+  }, PREDICT_LOCK_MS);
+}
+
+function unlockBtn() {
+  const b = document.getElementById("pred-btn");
+  b.disabled = false;
+  b.className = "pred-btn";
+  b.textContent = "Predict Now";
+  document.getElementById("pred-status").textContent = "";
+}
+
+function updatePredictCountdown(offset) {
+  const b = document.getElementById("pred-btn");
+  const secondsLeft = Math.max(0, Math.ceil((S.predictLockUntil - Date.now()) / 1000));
+  b.textContent = `Locked ${secondsLeft}s`;
+  document.getElementById("pred-status").textContent =
+    `Prediction @ ${offset.toFixed(1)}s · cooldown ${secondsLeft}s`;
+}
+
+function initLeaderboard() {
+  S.leaderboard = [
+    ...FAKE_PLAYERS.map((player) => ({ ...player })),
+    { id: S.clientId, name: S.playerName, score: S.score, isMe: true },
+  ];
+  renderLeaderboard();
+}
+
+function updateLeaderboardScore(playerId, name, score) {
+  const existing = S.leaderboard.find((entry) => entry.id === playerId);
+  if (existing) {
+    existing.name = name;
+    existing.score = score;
+    existing.isMe = playerId === S.clientId;
+  } else {
+    S.leaderboard.push({ id: playerId, name, score, isMe: playerId === S.clientId });
+  }
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const board = document.getElementById("leaderboard");
+  if (!board) return;
+
+  const rows = [...S.leaderboard]
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, 8);
+
+  board.innerHTML = rows.map((entry, index) => `
+    <div class="lb-row ${entry.isMe ? "me" : ""}">
+      <div class="lb-rank">#${index + 1}</div>
+      <div class="lb-name">${entry.isMe ? "You" : entry.name}</div>
+      <div class="lb-score">${entry.score.toLocaleString()}</div>
+    </div>
+  `).join("");
+}
+
+let ntimer;
+function notify(msg, type = "info") {
+  const el = document.getElementById("notif");
+  el.className = `notif ${type} show`;
+  el.textContent = msg;
+  clearTimeout(ntimer);
+  ntimer = setTimeout(() => el.classList.remove("show"), 3500);
+}
+</script>
+</body>
+</html>

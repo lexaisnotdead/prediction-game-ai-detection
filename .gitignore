@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+backend/venv/
+
+# Local environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build / tool output
+dist/
+build/
+site/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime artifacts
+backend/debug_frames/
+backend/runs/
+backend/.cache/
+*.log
+
+# Generated dataset assets
+backend/data/*/images/**/*.jpg
+backend/data/*/images/**/*.jpeg
+backend/data/*/images/**/*.png
+backend/data/*/labels/**/*.txt
+!backend/data/*/images/**/.gitkeep
+!backend/data/*/labels/**/.gitkeep
+
+# Weights: keep only runtime weights in repo
+*.pt
+*.pth
+!yoloe-11s-seg.pt
+!backend/models/trained/*.pt
+backend/mobileclip_blt.ts
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+
+import_label_studio_yolo.py
