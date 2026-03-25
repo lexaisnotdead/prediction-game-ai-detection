@@ -8,7 +8,7 @@ Anti-cheat:
   1. delta_norm ≤ 0 → клик после события (с учётом задержки) → rejected
   2. predictedOffset > event_ts → клик явно после события → rejected
   3. Максимум 1 предсказание на событие за сессию
-  4. Rate limit: не чаще 1 клика в 5 секунд (серверное время)
+  4. Rate limit: не чаще 1 клика в 10 секунд или до ближайшего события
 
 Очки:
   0–2s   → 1000 pts (Perfect)
@@ -18,12 +18,13 @@ Anti-cheat:
 """
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass
 class Prediction:
+    client_id:        str
     match_id:         str
     event_type:       str
     predicted_offset: float   # секунды, player.getCurrentTime() на клиенте
@@ -103,3 +104,8 @@ def check_rate_limit(client_id: str) -> Optional[str]:
         return f"rate limit: wait {wait:.1f}s"
     _last_click[client_id] = now
     return None
+
+
+def clear_rate_limit(client_id: str) -> None:
+    """Сбрасывает server-side cooldown после события."""
+    _last_click.pop(client_id, None)

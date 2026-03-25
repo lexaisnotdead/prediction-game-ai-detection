@@ -35,7 +35,7 @@ from pydantic import BaseModel
 
 from stream import MATCHES, is_stream_available, frame_generator
 from detector import make_detector
-from scoring import Prediction, score, check_rate_limit
+from scoring import Prediction, score, check_rate_limit, clear_rate_limit
 
 
 # ── Redis ──────────────────────────────────────────────────────────────
@@ -172,10 +172,11 @@ async def run_detector(match_id: str, stop_event: threading.Event):
         # Скорим ожидающие предсказания
         preds = pending.pop(match_id, [])
         for pred in preds:
+            clear_rate_limit(pred.client_id)
             result = score(pred, ev.timestamp, ev.event_type)
             await manager.broadcast(match_id, {
                 "type":        "score_result",
-                "client_id":   pred.match_id,  # используем match_id как proxy
+                "client_id":   pred.client_id,
                 "pts":         result.pts,
                 "quality":     result.quality,
                 "delta_raw":   round(result.delta_raw,  3),
@@ -263,6 +264,7 @@ async def predict(req: PredictRequest):
         raise HTTPException(status_code=503, detail="stream not available")
 
     pred = Prediction(
+        client_id        = req.client_id,
         match_id         = req.match_id,
         event_type       = req.event_type,
         predicted_offset = req.predicted_offset,

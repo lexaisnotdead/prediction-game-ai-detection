@@ -983,6 +983,10 @@ function connectWS(matchId) {
 }
 
 function onEventDetected(msg) {
+  if (S.prediction && S.matchId) {
+    releasePredictLock();
+  }
+
   const dot = document.getElementById("dot");
   dot.className = "dot event";
   document.getElementById("detect-text").innerHTML =
@@ -1070,15 +1074,24 @@ function lockBtn(offset) {
   }, 250);
 
   S.predictLockTimer = setTimeout(() => {
-    S.prediction = null;
-    S.predictLockTimer = null;
-    S.predictLockUntil = 0;
-    if (S.predictCountdownTimer) {
-      clearInterval(S.predictCountdownTimer);
-      S.predictCountdownTimer = null;
-    }
-    unlockBtn();
+    releasePredictLock();
   }, PREDICT_LOCK_MS);
+}
+
+function releasePredictLock() {
+  S.prediction = null;
+  S.predictLockUntil = 0;
+
+  if (S.predictLockTimer) {
+    clearTimeout(S.predictLockTimer);
+    S.predictLockTimer = null;
+  }
+  if (S.predictCountdownTimer) {
+    clearInterval(S.predictCountdownTimer);
+    S.predictCountdownTimer = null;
+  }
+
+  unlockBtn();
 }
 
 function unlockBtn() {
