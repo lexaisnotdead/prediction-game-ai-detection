@@ -146,7 +146,24 @@ cd backend
 python -m uvicorn main:app --port 8000
 ```
 
-### 5. Open the app
+### 5. Optional debug mode
+
+Debug mode is disabled by default.
+
+To run the backend with debug enabled:
+
+```bash
+cd backend
+DEBUG_MODE=1 python -m uvicorn main:app --port 8000
+```
+
+When debug mode is enabled:
+
+- frames with detected balls, targets, and goals are saved to [backend/debug_frames](/backend/debug_frames)
+- debug overlay drawing is enabled
+- detector debug logs are printed to the console
+
+### 6. Open the app
 
 Open:
 
@@ -159,7 +176,7 @@ http://localhost:8000
 - The app serves the frontend directly from FastAPI.
 - Only the currently active match is processed.
 - Football and basketball streams are configured in [backend/stream.py](/backend/stream.py).
-- Debug frames that contain detections are saved to [backend/debug_frames](/backend/debug_frames).
+- Debug frame saving is controlled by `DEBUG_MODE`; when it is enabled, frames with detected objects and goals are saved to [backend/debug_frames](/backend/debug_frames).
 - The repository contains training utilities, but they are optional and not needed to run the app.
 
 ## Optional Training Utilities

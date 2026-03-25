@@ -156,11 +156,13 @@ async def run_detector(match_id: str, stop_event: threading.Event):
 
         print(f"[{match_id}] EVENT: {ev.event_type} at {ev.timestamp:.2f}s (conf={ev.confidence:.2f})")
 
-        # Пишем в Redis
-        await r.set(f"match:{match_id}:last_event_ts",   str(ev.timestamp))
-        await r.set(f"match:{match_id}:last_event_type", ev.event_type)
-        await r.expire(f"match:{match_id}:last_event_ts",   60)
-        await r.expire(f"match:{match_id}:last_event_type", 60)
+        # Пишем в Redis одним пайплайном, чтобы не делать лишние round-trips.
+        async with r.pipeline() as pipe:
+            await pipe.set(f"match:{match_id}:last_event_ts", str(ev.timestamp))
+            await pipe.set(f"match:{match_id}:last_event_type", ev.event_type)
+            await pipe.expire(f"match:{match_id}:last_event_ts", 60)
+            await pipe.expire(f"match:{match_id}:last_event_type", 60)
+            await pipe.execute()
 
         # Бродкастим клиентам
         await manager.broadcast(match_id, {

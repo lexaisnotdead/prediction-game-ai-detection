@@ -8,6 +8,7 @@ detector.py — YOLOE rule-based event detection
 """
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -78,13 +79,20 @@ TARGET_TILE_LAYOUTS = {
         (0.28, 0.05, 0.72, 0.34),
     ],
 }
-DRAW_DEBUG_OVERLAY = True
-DEBUG_CONSOLE_LOGS = True
-DEBUG_SAVE_FRAMES = True
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+DEBUG_MODE = _env_flag("DEBUG_MODE", default=False)
+DRAW_DEBUG_OVERLAY = DEBUG_MODE
+DEBUG_CONSOLE_LOGS = DEBUG_MODE
+DEBUG_SAVE_FRAMES = DEBUG_MODE
 DEBUG_HEARTBEAT_EVERY_N_FRAMES = 50
-# Апскейл возвращён — HSV фильтры (orange/red/beige) откалиброваны под усиленное изображение.
 UPSCALE_FACTOR = 1.5
-DEBUG_LOG_SAVED_FRAMES = True
+DEBUG_LOG_SAVED_FRAMES = DEBUG_MODE
 YOLO_IMGSZ = 768
 BALL_TILE_SCAN_INTERVAL = {
     "football": 3,
@@ -197,13 +205,23 @@ def _draw_box(frame, box: DetectionBox, color: tuple[int, int, int], text: str) 
 
 
 def _preprocess_frame(frame: np.ndarray) -> np.ndarray:
-    enlarged = cv2.resize(frame, None, fx=UPSCALE_FACTOR, fy=UPSCALE_FACTOR, interpolation=cv2.INTER_CUBIC)
+    if UPSCALE_FACTOR == 1.0:
+        enlarged = frame
+    else:
+        enlarged = cv2.resize(frame, None, fx=UPSCALE_FACTOR, fy=UPSCALE_FACTOR, interpolation=cv2.INTER_CUBIC)
     blur = cv2.GaussianBlur(enlarged, (0, 0), 0.8)
     return cv2.addWeighted(enlarged, 1.20, blur, -0.20, 0)
 
 
+def _should_prepare_debug_frame() -> bool:
+    return DRAW_DEBUG_OVERLAY or DEBUG_SAVE_FRAMES
+
+
 def _prepare_debug_frame(frame: np.ndarray) -> np.ndarray:
-    return cv2.resize(frame, None, fx=UPSCALE_FACTOR, fy=UPSCALE_FACTOR, interpolation=cv2.INTER_CUBIC)
+    if UPSCALE_FACTOR == 1.0:
+        return frame.copy()
+    enlarged = cv2.resize(frame, None, fx=UPSCALE_FACTOR, fy=UPSCALE_FACTOR, interpolation=cv2.INTER_CUBIC)
+    return enlarged
 
 
 def _iou(a: DetectionBox, b: DetectionBox) -> float:
@@ -266,56 +284,31 @@ def _crop_box(frame: np.ndarray, box: DetectionBox, inset_ratio: float = 0.18) -
     return frame[y1:y2, x1:x2]
 
 
-def _basketball_orange_ratio(frame: np.ndarray, box: DetectionBox) -> float:
+def _basketball_color_ratios(frame: np.ndarray, box: DetectionBox) -> tuple[float, float, float, float, float]:
     crop = _crop_box(frame, box)
     if crop.size == 0:
-        return 0.0
+        return 0.0, 1.0, 1.0, 1.0, 1.0
     hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+
     # Для этой трансляции считаем только коричневый и темно-оранжевый диапазон,
     # без ярко-оранжевых тонов.
-    mask = cv2.inRange(hsv, (6, 55, 20), (18, 255, 190))
-    return float(mask.mean() / 255.0)
-
-
-def _basketball_neutral_ratio(frame: np.ndarray, box: DetectionBox) -> float:
-    crop = _crop_box(frame, box)
-    if crop.size == 0:
-        return 1.0
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+    orange = cv2.inRange(hsv, (6, 55, 20), (18, 255, 190))
     # Белые/серые яркие объекты вроде табличек, кресел, ламп и бликов.
     neutral = cv2.inRange(hsv, (0, 0, 90), (180, 70, 255))
-    return float(neutral.mean() / 255.0)
-
-
-def _basketball_beige_ratio(frame: np.ndarray, box: DetectionBox) -> float:
-    crop = _crop_box(frame, box)
-    if crop.size == 0:
-        return 1.0
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
     # Светлый бежевый/деревянный паркет.
     beige = cv2.inRange(hsv, (10, 20, 120), (32, 135, 255))
-    return float(beige.mean() / 255.0)
-
-
-def _basketball_red_ratio(frame: np.ndarray, box: DetectionBox) -> float:
-    crop = _crop_box(frame, box)
-    if crop.size == 0:
-        return 1.0
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
     # Сужаем до H=0-7 (был 0-10): тёмно-оранжевый мяч имеет H≈8-18 и теперь не попадает сюда.
     red1 = cv2.inRange(hsv, (0,  70, 45), (7,  255, 255))
     red2 = cv2.inRange(hsv, (170, 70, 45), (180, 255, 255))
     red = cv2.bitwise_or(red1, red2)
-    return float(red.mean() / 255.0)
-
-
-def _basketball_purple_ratio(frame: np.ndarray, box: DetectionBox) -> float:
-    crop = _crop_box(frame, box)
-    if crop.size == 0:
-        return 1.0
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
     purple = cv2.inRange(hsv, (118, 35, 35), (165, 255, 255))
-    return float(purple.mean() / 255.0)
+    return (
+        float(orange.mean() / 255.0),
+        float(neutral.mean() / 255.0),
+        float(beige.mean() / 255.0),
+        float(red.mean() / 255.0),
+        float(purple.mean() / 255.0),
+    )
 
 
 def _box_area(box: DetectionBox) -> float:
@@ -706,22 +699,12 @@ class BallIntoTargetDetector:
         if self.sport == "basketball":
             ranked: list[tuple[float, DetectionBox]] = []
             for ball in balls:
-                orange_ratio = _basketball_orange_ratio(frame, ball)
-                neutral_ratio = _basketball_neutral_ratio(frame, ball)
-                beige_ratio = _basketball_beige_ratio(frame, ball)
-                red_ratio = _basketball_red_ratio(frame, ball)
-                purple_ratio = _basketball_purple_ratio(frame, ball)
+                if ball.cy < frame_shape[0] * 0.22 and ball.width < 26 and ball.height < 26:
+                    continue
+                if ball.width < 10 or ball.height < 10:
+                    continue
 
-                # ── DIAGNOSTIC LOG ──────────────────────────────────────────
-                # Удали этот блок после отладки.
-                print(
-                    f"  [diag] ball candidate: conf={ball.confidence:.2f} "
-                    f"size={ball.width:.0f}x{ball.height:.0f} "
-                    f"cy={ball.cy:.0f}/{frame_shape[0]} "
-                    f"orange={orange_ratio:.3f} neutral={neutral_ratio:.3f} "
-                    f"beige={beige_ratio:.3f} red={red_ratio:.3f} purple={purple_ratio:.3f}"
-                )
-                # ────────────────────────────────────────────────────────────
+                orange_ratio, neutral_ratio, beige_ratio, red_ratio, purple_ratio = _basketball_color_ratios(frame, ball)
 
                 # Жесткие отрицательные фильтры. Если объект выглядит как крепеж, паркет,
                 # светлая табличка или фиолетовый элемент арены, он не может быть мячом
@@ -730,42 +713,27 @@ class BallIntoTargetDetector:
                     # Тёмно-оранжевый мяч имеет пересечение с красным диапазоном HSV.
                     # Если orange высокий — это мяч, а не красная форма игрока.
                     if orange_ratio < 0.3:
-                        print(f"  [diag]   -> REJECTED: red_ratio={red_ratio:.3f} > 0.18 (orange={orange_ratio:.3f} too low)")
                         continue
-                    print(f"  [diag]   -> red_ratio={red_ratio:.3f} but orange={orange_ratio:.3f} — likely ball, not jersey")
                 if beige_ratio > 0.36:
-                    print(f"  [diag]   -> REJECTED: beige_ratio={beige_ratio:.3f} > 0.36")
                     continue
                 if neutral_ratio > 0.46:
-                    print(f"  [diag]   -> REJECTED: neutral_ratio={neutral_ratio:.3f} > 0.46")
                     continue
                 if purple_ratio > 0.22:
-                    print(f"  [diag]   -> REJECTED: purple_ratio={purple_ratio:.3f} > 0.22")
                     continue
 
                 # Без апскейла HSV-сигнал слабее: реальный мяч даёт ~0.007.
                 # Порог снижен 0.035 → 0.005.
                 if orange_ratio < 0.005:
-                    print(f"  [diag]   -> REJECTED: orange_ratio={orange_ratio:.3f} < 0.005")
-                    continue
-                if ball.cy < frame_shape[0] * 0.22 and ball.width < 26 and ball.height < 26:
-                    print(f"  [diag]   -> REJECTED: too small and too high")
-                    continue
-                if ball.width < 10 or ball.height < 10:
-                    print(f"  [diag]   -> REJECTED: too small px")
                     continue
                 if self._last_ball is not None:
                     prev_area = max(_box_area(self._last_ball), 1.0)
                     curr_area = _box_area(ball)
                     area_ratio = curr_area / prev_area
                     if prev_area >= 420 and curr_area < 120:
-                        print(f"  [diag]   -> REJECTED: area jump {prev_area:.0f}->{curr_area:.0f}")
                         continue
                     if prev_area >= 280 and area_ratio < 0.30:
-                        print(f"  [diag]   -> REJECTED: area_ratio={area_ratio:.2f} < 0.30")
                         continue
                     if prev_area >= 180 and area_ratio < 0.22 and orange_ratio < 0.12:
-                        print(f"  [diag]   -> REJECTED: area_ratio+orange combo")
                         continue
                 score = ball.confidence + min(orange_ratio, 0.32) * 1.4 - abs(ball.width - ball.height) * 0.0007
                 score -= neutral_ratio * 0.45
@@ -776,11 +744,6 @@ class BallIntoTargetDetector:
                     score += 0.20
                 if 16 <= ball.width <= 140 and 16 <= ball.height <= 140:
                     score += 0.06
-                print(
-                    f"  [diag]   -> PASSED: score={score:.3f} "
-                    f"xyxy=({ball.x1:.0f},{ball.y1:.0f},{ball.x2:.0f},{ball.y2:.0f}) "
-                    f"size={ball.width:.0f}x{ball.height:.0f} cy={ball.cy:.0f}"
-                )
                 ranked.append((score, ball))
             if ranked:
                 if self._last_ball is not None:
@@ -837,7 +800,7 @@ class BallIntoTargetDetector:
         ball_model = get_ball_model(self.sport)
         target_model, target_mode = get_target_model(self.sport)
         work_frame = _preprocess_frame(frame)
-        debug_frame = _prepare_debug_frame(frame)
+        debug_frame: Optional[np.ndarray] = None
         self._frames_since_event += 1
         self._frame_idx += 1
 
@@ -902,21 +865,23 @@ class BallIntoTargetDetector:
         if not balls or not scoring_targets:
             self._ball_was_in_target = False
             self._ball_in_target_streak = 0
-            _draw_debug_overlay(
-                debug_frame,
-                self.sport,
-                balls,
-                scoring_targets,
-                using_cached_target,
-                False,
-                timestamp,
-            )
             buckets: list[str] = []
             if balls:
                 buckets.append("ball")
             if real_target_count:
                 buckets.append("target")
             if buckets:
+                if _should_prepare_debug_frame():
+                    debug_frame = _prepare_debug_frame(frame)
+                    _draw_debug_overlay(
+                        debug_frame,
+                        self.sport,
+                        balls,
+                        scoring_targets,
+                        using_cached_target,
+                        False,
+                        timestamp,
+                    )
                 _save_debug_frame(debug_frame, self.sport, timestamp, self._frame_idx, buckets)
             return None
 
@@ -932,15 +897,6 @@ class BallIntoTargetDetector:
 
         self._ball_in_target_streak = self._ball_in_target_streak + 1 if ball_in_target else 0
 
-        _draw_debug_overlay(
-            debug_frame,
-            self.sport,
-            balls,
-            scoring_targets,
-            using_cached_target,
-            ball_in_target,
-            timestamp,
-        )
         buckets = []
         if balls:
             buckets.append("ball")
@@ -949,6 +905,17 @@ class BallIntoTargetDetector:
         if ball_in_target:
             buckets.append("goal")
         if buckets:
+            if _should_prepare_debug_frame():
+                debug_frame = _prepare_debug_frame(frame)
+                _draw_debug_overlay(
+                    debug_frame,
+                    self.sport,
+                    balls,
+                    scoring_targets,
+                    using_cached_target,
+                    ball_in_target,
+                    timestamp,
+                )
             _save_debug_frame(debug_frame, self.sport, timestamp, self._frame_idx, buckets)
 
         if (
