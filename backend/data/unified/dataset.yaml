@@ -1,0 +1,10 @@
+path: .
+train: images/train
+val: images/val
+
+nc: 4
+names:
+  0: basketball_ball
+  1: basketball_rim
+  2: football_ball
+  3: football_goal

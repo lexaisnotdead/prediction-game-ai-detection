@@ -788,6 +788,7 @@ const S = {
   predictCountdownTimer: null,
   player: null,
   ws: null,
+  predictionToken: null,
   leaderboard: [],
   matches: {},
 };
@@ -958,6 +959,7 @@ function connectWS(matchId) {
     S.ws.close();
     S.ws = null;
   }
+  S.predictionToken = null;
 
   const url = `${WS_BASE}/${matchId}/${S.clientId}`;
   S.ws = new WebSocket(url);
@@ -971,11 +973,15 @@ function connectWS(matchId) {
 
   S.ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    if (msg.type === "event") onEventDetected(msg);
+    if (msg.type === "connected") {
+      S.predictionToken = msg.prediction_token || null;
+      document.getElementById("detect-text").textContent = "YOLO monitoring · session ready";
+    } else if (msg.type === "event") onEventDetected(msg);
     else if (msg.type === "score_result") onScoreResult(msg);
   };
 
   S.ws.onclose = () => {
+    S.predictionToken = null;
     document.getElementById("detect-text").textContent = "WebSocket disconnected";
     document.getElementById("video-status").textContent = "Reconnecting";
     setTimeout(() => { if (S.matchId === matchId) connectWS(matchId); }, 3000);
@@ -1002,6 +1008,10 @@ function onEventDetected(msg) {
 }
 
 function onScoreResult(msg) {
+  if (msg.client_id !== S.clientId) {
+    return;
+  }
+
   if (msg.rejected) {
     notify(`Rejected: ${msg.reject_reason}`, "error");
     return;
@@ -1028,6 +1038,7 @@ function onScoreResult(msg) {
 async function handlePredict() {
   if (!S.player || !S.matchId) return notify("Select a match first", "warn");
   if (S.prediction) return notify("Already predicted this round!", "warn");
+  if (!S.predictionToken) return notify("Prediction session not ready yet", "warn");
 
   const predictedOffset = S.player.getCurrentTime();
   const body = {
@@ -1035,7 +1046,7 @@ async function handlePredict() {
     event_type: S.selectedType,
     predicted_offset: predictedOffset,
     stream_delay: S.streamDelay,
-    client_id: S.clientId,
+    prediction_token: S.predictionToken,
   };
 
   try {

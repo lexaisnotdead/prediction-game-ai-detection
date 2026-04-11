@@ -1,6 +1,0 @@
-path: /Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/data/football_target
-train: images/train
-val: images/val
-
-names:
-  0: goal

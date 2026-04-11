@@ -1,0 +1,4 @@
+basketball_ball
+basketball_rim
+football_ball
+football_goal

@@ -1,8 +1,8 @@
 """
-detector.py — YOLOE rule-based event detection
+detector.py — unified-model rule-based event detection
 
 Футбол/Баскетбол:
-  YOLOE ищет мяч и цель отдельными open-vocabulary запросами.
+  одна fine-tuned YOLO-модель ищет и мяч, и цель.
   Событие "goal" фиксируется, когда центр мяча попадает в bbox цели.
   Для отладки на кадры рисуется overlay с bbox мяча и ворот/кольца.
 """
@@ -12,34 +12,23 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from ultralytics import YOLO, YOLOE
+from ultralytics import YOLO
 import cv2
 import numpy as np
 
 
 ROOT_DIR = Path(__file__).resolve().parent
-YOLOE_MODEL_PATH = ROOT_DIR.parent / "yoloe-11s-seg.pt"
 DEBUG_FRAMES_DIR = ROOT_DIR / "debug_frames"
 TRAINED_MODELS_DIR = ROOT_DIR / "models" / "trained"
-TARGET_MODEL_PATHS = {
-    "football": TRAINED_MODELS_DIR / "football_target.pt",
-    "basketball": TRAINED_MODELS_DIR / "basketball_target.pt",
-}
+UNIFIED_MODEL_PATH = TRAINED_MODELS_DIR / "unified_detector.pt"
 
-BALL_PROMPTS = {
-    "football": ["soccer ball", "football ball", "sports ball"],
-    "basketball": ["basketball", "basketball ball", "brown basketball ball", "dark orange basketball ball"],
+BALL_LABELS = {
+    "football": {"football_ball"},
+    "basketball": {"basketball_ball"},
 }
-TARGET_PROMPTS = {
-    "football": ["soccer goal", "goal post", "soccer net"],
-    "basketball": [
-        "basketball hoop",
-        "basketball rim",
-        "basketball rim with net and backboard",
-        "basketball backboard",
-        "basketball stanchion",
-        "basket support arm",
-    ],
+TARGET_LABELS = {
+    "football": {"football_goal"},
+    "basketball": {"basketball_rim"},
 }
 
 # Минимальные confidence по типам объектов
@@ -122,38 +111,16 @@ TILE_LAYOUTS = {
 }
 
 
-_ball_models: dict[str, YOLOE] = {}
-_target_models: dict[str, object] = {}
-_target_modes: dict[str, str] = {}
+_unified_model: YOLO | None = None
 
 
-def get_ball_model(sport: str) -> YOLOE:
-    model = _ball_models.get(sport)
-    if model is None:
-        model = YOLOE(str(YOLOE_MODEL_PATH))
-        model.set_classes(BALL_PROMPTS[sport])
-        _ball_models[sport] = model
-    return model
-
-
-def get_target_model(sport: str) -> tuple[object, str]:
-    model = _target_models.get(sport)
-    mode = _target_modes.get(sport)
-    if model is not None and mode is not None:
-        return model, mode
-
-    trained_path = TARGET_MODEL_PATHS[sport]
-    if trained_path.exists():
-        model = YOLO(str(trained_path))
-        mode = "trained"
-    else:
-        model = YOLOE(str(YOLOE_MODEL_PATH))
-        model.set_classes(TARGET_PROMPTS[sport])
-        mode = "ov"
-
-    _target_models[sport] = model
-    _target_modes[sport] = mode
-    return model, mode
+def get_unified_model() -> YOLO:
+    global _unified_model
+    if _unified_model is None:
+        if not UNIFIED_MODEL_PATH.exists():
+            raise FileNotFoundError(f"Unified detector weights not found: {UNIFIED_MODEL_PATH}")
+        _unified_model = YOLO(str(UNIFIED_MODEL_PATH))
+    return _unified_model
 
 
 @dataclass
@@ -261,11 +228,6 @@ def _same_object(
     h, w = frame_shape[:2]
     return _distance(current, previous) <= max_dist_ratio * max(w, h)
 
-
-def _make_box(label: str, confidence: float, x1: float, y1: float, x2: float, y2: float) -> DetectionBox:
-    return DetectionBox(label=label, confidence=confidence, x1=x1, y1=y1, x2=x2, y2=y2)
-
-
 def _crop_box(frame: np.ndarray, box: DetectionBox, inset_ratio: float = 0.18) -> np.ndarray:
     h, w = frame.shape[:2]
     pad_x = box.width * inset_ratio
@@ -362,7 +324,7 @@ def _draw_debug_overlay(
 def _extract_ball_boxes(result, sport: str) -> list[DetectionBox]:
     names = result.names
     balls: list[DetectionBox] = []
-    ball_labels = set(BALL_PROMPTS[sport])
+    ball_labels = BALL_LABELS[sport]
 
     for box in result.boxes:
         cls_id = int(box.cls[0])
@@ -396,16 +358,10 @@ def _extract_ball_boxes(result, sport: str) -> list[DetectionBox]:
     return balls
 
 
-def _extract_target_boxes(result, sport: str, target_mode: str) -> list[DetectionBox]:
+def _extract_target_boxes(result, sport: str) -> list[DetectionBox]:
     names = result.names
     targets: list[DetectionBox] = []
-    if target_mode == "trained":
-        target_labels = (
-            {"goal"} if sport == "football"
-            else {"rim", "backboard"}
-        )
-    else:
-        target_labels = set(TARGET_PROMPTS[sport])
+    target_labels = TARGET_LABELS[sport]
 
     for box in result.boxes:
         cls_id = int(box.cls[0])
@@ -424,48 +380,15 @@ def _normalize_basketball_targets(targets: list[DetectionBox], frame_shape: tupl
         return []
 
     h, w = frame_shape[:2]
-    backboard_labels = {"basketball backboard", "backboard"}
-    rim_labels = {"basketball hoop", "basketball rim", "basketball rim with net and backboard", "rim"}
-    backboards = [t for t in targets if t.label in backboard_labels]
-    rims = [t for t in targets if t.label in rim_labels]
-
-    # Баскетбольный target без щита почти всегда слишком шумный для этой трансляции.
-    if not backboards:
-        return []
-
-    backboards = [
-        b for b in backboards
-        if b.cy <= 0.45 * h and 0.0005 <= (b.width * b.height) / max(w * h, 1) <= 0.05
+    rims = [
+        t for t in targets
+        if t.label in TARGET_LABELS["basketball"]
+        and t.cy <= 0.45 * h
+        and 0.0002 <= (t.width * t.height) / max(w * h, 1) <= 0.03
     ]
-    if not backboards:
+    if not rims:
         return []
-
-    board = max(backboards, key=lambda b: b.confidence)
-    nearby_rims = [
-        rim for rim in rims
-        if abs(rim.cx - board.cx) <= 1.2 * max(board.width, rim.width)
-        and board.y1 <= rim.cy <= board.y2 + 1.6 * board.height
-    ]
-    if nearby_rims:
-        return [max(nearby_rims, key=lambda r: r.confidence)]
-
-    inferred_conf = min(0.99, board.confidence * 0.78)
-
-    # Для этого broadcast-ракурса держим inferred target примерно
-    # в середине между нижней частью щита и ожидаемым уровнем rim.
-    rim_w = max(board.width * 0.63, 18.0)
-    rim_h = max(board.height * 0.36, 12.0)
-    rim_cx = board.cx
-    rim_cy = board.y1 + board.height * 0.62
-    inferred = _make_box(
-        "inferred basketball rim",
-        inferred_conf,
-        rim_cx - rim_w / 2,
-        rim_cy - rim_h / 2,
-        rim_cx + rim_w / 2,
-        rim_cy + rim_h / 2,
-    )
-    return [inferred]
+    return [max(rims, key=lambda t: t.confidence)]
 
 
 def _normalize_football_targets(targets: list[DetectionBox], frame_shape: tuple[int, int, int]) -> list[DetectionBox]:
@@ -480,7 +403,7 @@ def _normalize_football_targets(targets: list[DetectionBox], frame_shape: tuple[
     ]
     if not plausible:
         return []
-    goal_like = [t for t in plausible if t.label in {"soccer goal", "soccer net"}]
+    goal_like = [t for t in plausible if t.label in TARGET_LABELS["football"]]
     pool = goal_like or plausible
     return [max(pool, key=lambda t: t.confidence)]
 
@@ -512,11 +435,10 @@ def _extract_ball_boxes_from_result(
 def _extract_target_boxes_from_result(
     result,
     sport: str,
-    target_mode: str,
     x_offset: float = 0.0,
     y_offset: float = 0.0,
 ) -> list[DetectionBox]:
-    targets = _extract_target_boxes(result, sport, target_mode)
+    targets = _extract_target_boxes(result, sport)
     if x_offset == 0.0 and y_offset == 0.0:
         return targets
 
@@ -631,9 +553,7 @@ class BallIntoTargetDetector:
 
     def _run_detection(
         self,
-        ball_model: YOLOE,
-        target_model: object,
-        target_mode: str,
+        model: YOLO,
         frame: np.ndarray,
         use_tiles: bool,
         use_target_tiles: bool,
@@ -641,10 +561,9 @@ class BallIntoTargetDetector:
         balls: list[DetectionBox] = []
         targets: list[DetectionBox] = []
 
-        ball_results = ball_model(frame, verbose=False, imgsz=YOLO_IMGSZ, conf=BALL_CONFIDENCE[self.sport])
-        full_balls = _extract_ball_boxes_from_result(ball_results[0], self.sport)
-        target_results = target_model(frame, verbose=False, imgsz=YOLO_IMGSZ, conf=0.02)
-        full_targets = _extract_target_boxes_from_result(target_results[0], self.sport, target_mode)
+        full_results = model(frame, verbose=False, imgsz=YOLO_IMGSZ, conf=0.02)
+        full_balls = _extract_ball_boxes_from_result(full_results[0], self.sport)
+        full_targets = _extract_target_boxes_from_result(full_results[0], self.sport)
         balls.extend(full_balls)
         targets.extend(full_targets)
 
@@ -658,7 +577,7 @@ class BallIntoTargetDetector:
                 crop = frame[y0:y1, x0:x1]
                 if crop.size == 0:
                     continue
-                tile_results = ball_model(crop, verbose=False, imgsz=YOLO_IMGSZ, conf=BALL_CONFIDENCE[self.sport])
+                tile_results = model(crop, verbose=False, imgsz=YOLO_IMGSZ, conf=0.02)
                 tile_balls = _extract_ball_boxes_from_result(tile_results[0], self.sport, x0, y0)
                 balls.extend(tile_balls)
 
@@ -672,8 +591,8 @@ class BallIntoTargetDetector:
                 crop = frame[y0:y1, x0:x1]
                 if crop.size == 0:
                     continue
-                tile_results = target_model(crop, verbose=False, imgsz=YOLO_IMGSZ, conf=0.015)
-                tile_targets = _extract_target_boxes_from_result(tile_results[0], self.sport, target_mode, x0, y0)
+                tile_results = model(crop, verbose=False, imgsz=YOLO_IMGSZ, conf=0.02)
+                tile_targets = _extract_target_boxes_from_result(tile_results[0], self.sport, x0, y0)
                 targets.extend(tile_targets)
 
         return _dedupe_boxes(balls), _dedupe_boxes(targets)
@@ -797,8 +716,7 @@ class BallIntoTargetDetector:
         return [chosen] if self._target_confirm_streak >= OBJECT_CONFIRM_FRAMES else []
 
     def process(self, frame: np.ndarray, timestamp: float) -> Optional[DetectedEvent]:
-        ball_model = get_ball_model(self.sport)
-        target_model, target_mode = get_target_model(self.sport)
+        model = get_unified_model()
         work_frame = _preprocess_frame(frame)
         debug_frame: Optional[np.ndarray] = None
         self._frames_since_event += 1
@@ -807,9 +725,7 @@ class BallIntoTargetDetector:
         use_tiles = (self._frame_idx % BALL_TILE_SCAN_INTERVAL[self.sport] == 0)
         use_target_tiles = (self._frame_idx % TARGET_SCAN_INTERVAL[self.sport] == 0)
         balls, targets = self._run_detection(
-            ball_model,
-            target_model,
-            target_mode,
+            model,
             work_frame,
             use_tiles=use_tiles,
             use_target_tiles=use_target_tiles,

@@ -39,12 +39,14 @@ backend/data/*/images/**/*.png
 backend/data/*/labels/**/*.txt
 !backend/data/*/images/**/.gitkeep
 !backend/data/*/labels/**/.gitkeep
+backend/data/*/dataset.absolute.yaml
+backend/data/*/import_summary.json
+backend/data/*/strip_hash_prefixes_summary.json
 
-# Weights: keep only runtime weights in repo
+# Weights: keep only unified runtime weights in repo
 *.pt
 *.pth
-!yoloe-11s-seg.pt
-!backend/models/trained/*.pt
+!backend/models/trained/unified_detector.pt
 backend/mobileclip_blt.ts
 
 # OS / IDE
@@ -53,5 +55,4 @@ backend/mobileclip_blt.ts
 .vscode/
 *.swp
 
-
-import_label_studio_yolo.py
+.omx/

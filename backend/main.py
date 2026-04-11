@@ -18,10 +18,9 @@ Redis ключи:
 """
 
 import asyncio
-import json
+import math
 import threading
 import time
-import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -35,7 +34,8 @@ from pydantic import BaseModel
 
 from stream import MATCHES, is_stream_available, frame_generator
 from detector import make_detector
-from scoring import Prediction, score, check_rate_limit, clear_rate_limit
+from game_session import ConnectionRegistry, PendingPredictions
+from scoring import Prediction, score, check_rate_limit, clear_rate_limit, clamp_stream_delay
 
 
 # ── Redis ──────────────────────────────────────────────────────────────
@@ -48,38 +48,8 @@ async def get_redis() -> aioredis.Redis:
     return redis_client
 
 
-# ── WebSocket connection manager ───────────────────────────────────────
-class ConnectionManager:
-    def __init__(self):
-        # match_id -> set of WebSocket
-        self._connections: dict[str, set[WebSocket]] = {}
-
-    async def connect(self, match_id: str, ws: WebSocket):
-        await ws.accept()
-        self._connections.setdefault(match_id, set()).add(ws)
-
-    def disconnect(self, match_id: str, ws: WebSocket):
-        self._connections.get(match_id, set()).discard(ws)
-
-    def count(self, match_id: str) -> int:
-        return len(self._connections.get(match_id, set()))
-
-    async def broadcast(self, match_id: str, message: dict):
-        dead = set()
-        for ws in self._connections.get(match_id, set()):
-            try:
-                await ws.send_json(message)
-            except Exception:
-                dead.add(ws)
-        for ws in dead:
-            self._connections.get(match_id, set()).discard(ws)
-
-
-manager = ConnectionManager()
-
-# Pending predictions: match_id -> list[Prediction]
-# В продакшне — Redis hash, здесь in-memory достаточно
-pending: dict[str, list[Prediction]] = {}
+manager = ConnectionRegistry()
+pending = PendingPredictions()
 
 
 # ── Detector background loop ───────────────────────────────────────────
@@ -172,17 +142,19 @@ async def run_detector(match_id: str, stop_event: threading.Event):
         })
 
         # Скорим ожидающие предсказания
-        preds = pending.pop(match_id, [])
+        preds = pending.pop_match(match_id)
+        event_received_time = time.time()
         for pred in preds:
             clear_rate_limit(pred.client_id)
-            result = score(pred, ev.timestamp, ev.event_type)
-            await manager.broadcast(match_id, {
+            result = score(pred, ev.timestamp, ev.event_type, event_received_time=event_received_time)
+            await manager.send_to_client(match_id, pred.client_id, {
                 "type":        "score_result",
                 "client_id":   pred.client_id,
                 "pts":         result.pts,
                 "quality":     result.quality,
                 "delta_raw":   round(result.delta_raw,  3),
                 "delta_norm":  round(result.delta_norm, 3),
+                "delta_server": round(result.delta_server, 3),
                 "type_match":  result.type_match,
                 "rejected":    result.rejected,
                 "reject_reason": result.reject_reason,
@@ -249,32 +221,42 @@ class PredictRequest(BaseModel):
     event_type:       str   # "goal"
     predicted_offset: float # player.getCurrentTime()
     stream_delay:     float # измеренная задержка на клиенте (секунды)
-    client_id:        str
+    prediction_token: str
 
 
 @app.post("/predict")
 async def predict(req: PredictRequest):
-    # Rate limit
-    err = check_rate_limit(req.client_id)
-    if err:
-        raise HTTPException(status_code=429, detail=err)
-
     if req.match_id not in MATCHES:
         raise HTTPException(status_code=404, detail="match not found")
+
+    if not math.isfinite(req.predicted_offset) or req.predicted_offset < 0:
+        raise HTTPException(status_code=422, detail="predicted_offset must be a finite positive number")
+
+    if not math.isfinite(req.stream_delay):
+        raise HTTPException(status_code=422, detail="stream_delay must be finite")
+
+    session = manager.get_session(req.prediction_token)
+    if session is None or session.match_id != req.match_id:
+        raise HTTPException(status_code=403, detail="prediction session is invalid or expired")
+
+    # Rate limit
+    err = check_rate_limit(session.client_id)
+    if err:
+        raise HTTPException(status_code=429, detail=err)
 
     if not await ensure_detector(req.match_id):
         raise HTTPException(status_code=503, detail="stream not available")
 
     pred = Prediction(
-        client_id        = req.client_id,
+        client_id        = session.client_id,
         match_id         = req.match_id,
         event_type       = req.event_type,
         predicted_offset = req.predicted_offset,
-        stream_delay     = req.stream_delay,
+        stream_delay     = clamp_stream_delay(req.stream_delay),
         server_recv_time = time.time(),
     )
 
-    pending.setdefault(req.match_id, []).append(pred)
+    pending.add(req.match_id, session.client_id, pred)
     return {"status": "ok", "message": "prediction received"}
 
 
@@ -286,7 +268,7 @@ async def websocket_endpoint(ws: WebSocket, match_id: str, client_id: str):
         await ws.close(code=1013)
         return
 
-    await manager.connect(match_id, ws)
+    prediction_token = await manager.connect(match_id, client_id, ws)
     try:
         await ensure_detector(match_id)
         # Отправляем текущее состояние матча сразу после подключения
@@ -296,6 +278,7 @@ async def websocket_endpoint(ws: WebSocket, match_id: str, client_id: str):
         await ws.send_json({
             "type":       "connected",
             "match_id":   match_id,
+            "prediction_token": prediction_token,
             "last_event_ts":   float(last_ts)   if last_ts   else None,
             "last_event_type": last_type if last_type else None,
         })

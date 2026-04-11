@@ -21,6 +21,9 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+MAX_STREAM_DELAY_SECONDS = 15.0
+SERVER_DELTA_TOLERANCE_SECONDS = 1.5
+
 
 @dataclass
 class Prediction:
@@ -38,6 +41,7 @@ class ScoreResult:
     quality:      str     # Perfect / Great / Good / Too Early / Rejected
     delta_raw:    float
     delta_norm:   float
+    delta_server: float
     type_match:   bool
     rejected:     bool
     reject_reason: Optional[str] = None
@@ -48,7 +52,16 @@ _last_click: dict[str, float] = {}
 RATE_LIMIT_SECONDS = 10.0
 
 
-def score(prediction: Prediction, event_ts: float, event_type: str) -> ScoreResult:
+def clamp_stream_delay(stream_delay: float) -> float:
+    return min(max(stream_delay, 0.0), MAX_STREAM_DELAY_SECONDS)
+
+
+def score(
+    prediction: Prediction,
+    event_ts: float,
+    event_type: str,
+    event_received_time: float,
+) -> ScoreResult:
     """
     Считаем очки для одного предсказания.
 
@@ -56,22 +69,38 @@ def score(prediction: Prediction, event_ts: float, event_type: str) -> ScoreResu
     event_ts                    — позиция в видео когда произошло событие
                                   (из CAP_PROP_POS_MSEC на сервере).
     """
-    delta_raw  = event_ts - prediction.predicted_offset
-    delta_norm = delta_raw - prediction.stream_delay
+    stream_delay = clamp_stream_delay(prediction.stream_delay)
+    delta_raw = event_ts - prediction.predicted_offset
+    delta_norm = delta_raw - stream_delay
+    delta_server = event_received_time - prediction.server_recv_time
 
     # ── Anti-cheat ────────────────────────────────────────────────────
     if prediction.predicted_offset >= event_ts:
         return ScoreResult(
             pts=0, quality="Rejected", delta_raw=delta_raw,
-            delta_norm=delta_norm, type_match=False,
+            delta_norm=delta_norm, delta_server=delta_server, type_match=False,
             rejected=True, reject_reason="click after event timestamp"
         )
 
     if delta_norm <= 0:
         return ScoreResult(
             pts=0, quality="Rejected", delta_raw=delta_raw,
-            delta_norm=delta_norm, type_match=False,
+            delta_norm=delta_norm, delta_server=delta_server, type_match=False,
             rejected=True, reject_reason="normalised delta ≤ 0 (stream delay exploit)"
+        )
+
+    if delta_server <= 0:
+        return ScoreResult(
+            pts=0, quality="Rejected", delta_raw=delta_raw,
+            delta_norm=delta_norm, delta_server=delta_server, type_match=False,
+            rejected=True, reject_reason="prediction arrived after detected event"
+        )
+
+    if delta_norm > delta_server + SERVER_DELTA_TOLERANCE_SECONDS:
+        return ScoreResult(
+            pts=0, quality="Rejected", delta_raw=delta_raw,
+            delta_norm=delta_norm, delta_server=delta_server, type_match=False,
+            rejected=True, reject_reason="client timing exceeds server-observed lead"
         )
 
     type_match = prediction.event_type == event_type
@@ -90,7 +119,7 @@ def score(prediction: Prediction, event_ts: float, event_type: str) -> ScoreResu
 
     return ScoreResult(
         pts=pts, quality=quality,
-        delta_raw=delta_raw, delta_norm=delta_norm,
+        delta_raw=delta_raw, delta_norm=delta_norm, delta_server=delta_server,
         type_match=type_match, rejected=False,
     )
 

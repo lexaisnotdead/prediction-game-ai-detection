@@ -4,7 +4,7 @@ PredictSport is a local prototype game where the user watches a live sports vide
 
 The repository is prepared in a clone-and-run format:
 - runtime model weights are already included in the repository
-- trained target models are already included in the repository
+- the unified runtime detector is already included in the repository
 - the user does not need to train models or download weights to start the app
 
 ## What The App Does
@@ -24,7 +24,7 @@ The game loop is simple:
 
 1. Open one of the available sports streams.
 2. Click `Predict Now` before the scoring moment happens.
-3. The frontend sends the current video timestamp, selected event type, measured stream delay, and client id to the backend.
+3. The frontend sends the current video timestamp, selected event type, measured stream delay, and the active prediction session token to the backend.
 4. The backend waits for the next detected event for that match.
 5. When an event is detected, the prediction is scored and the result is pushed back to the browser over WebSocket.
 6. If the prediction earns points, they are added to the player total and reflected in the leaderboard.
@@ -58,8 +58,7 @@ Predictions can also be rejected. The current backend rejects a prediction when:
 - Backend API: FastAPI in [backend/main.py](/backend/main.py)
 - Video ingestion: `yt-dlp` + OpenCV in [backend/stream.py](/backend/stream.py)
 - Detection:
-  - balls are detected with YOLO / YOLOE
-  - targets (football goal and basketball hoop/backboard) are detected with custom trained target models
+  - a single fine-tuned YOLO detector finds balls and scoring targets for both sports
   in [backend/detector.py](/backend/detector.py)
 - State / event cache: Redis via [docker-compose.yml](/docker-compose.yml)
 
@@ -70,36 +69,50 @@ frontend/
   index.html              # UI
 
 backend/
-  main.py                 # FastAPI app, websocket endpoints, static serving
-  stream.py               # YouTube stream access and frame generator
-  detector.py             # YOLO ball detection + custom target-model detection + event logic
-  scoring.py              # Prediction scoring logic
-  requirements.txt        # Python dependencies
-  debug_frames/           # Saved debug frames with detections
+  main.py                        # FastAPI app, websocket endpoints, static serving
+  stream.py                      # YouTube stream access and frame generator
+  detector.py                    # Unified YOLO detection + event logic
+  scoring.py                     # Prediction scoring logic
+  game_session.py                # WebSocket session registry + pending predictions
+  import_unified_dataset.py      # Import Label Studio train/val export into backend/data/unified
+  strip_dataset_hash_prefixes.py # Remove hash prefixes from imported dataset files
+  train_unified_model.py         # Fine-tune the unified detector on backend/data/unified
+  requirements.txt               # Python dependencies
+  data/unified/
+    dataset.yaml                 # Main training dataset config
+    classes.txt                  # Unified class list
+    images/train/                # Unified training images
+    images/val/                  # Unified validation images
+    labels/train/                # Unified training labels
+    labels/val/                  # Unified validation labels
   models/trained/
-    football_target.pt    # Included runtime target model
-    basketball_target.pt  # Included runtime target model
+    unified_detector.pt           # Included runtime unified detector
+    unified_detector.json         # Metadata for the trained unified detector
+  tests/
+    test_detector.py              # Detector helper regression tests
+    test_game_session.py          # Session/pending prediction tests
+    test_scoring.py               # Scoring and anti-cheat tests
+  runs/unified_training/          # Local training runs and metrics (generated)
 
-yoloe-11s-seg.pt          # Included runtime base detector
 docker-compose.yml        # Redis
+.gitignore                # Ignore local env, generated data, and training artifacts
 ```
 
 ## Included Weights
 
 The repository already contains the files required to run:
 
-- yoloe-11s-seg.pt
-- football_target.pt
-- basketball_target.pt
+- unified_detector.pt
 
-No extra model training is required for normal use. Some Ultralytics open-vocabulary support files may still be fetched automatically on first run if they are not present locally.
+No extra model training is required for normal use.
 
 ## Detection Pipeline
 
-- Ball detection is handled by YOLO / YOLOE.
-- Target detection is handled by custom trained models included in the repository:
-  - `football_target.pt` for football goals
-  - `basketball_target.pt` for basketball rim / backboard targets
+- Ball and target detection are handled by one fine-tuned YOLO model with four classes:
+  - `basketball_ball`
+  - `basketball_rim`
+  - `football_ball`
+  - `football_goal`
 - A scoring event is emitted when the detected ball enters the detected target area.
 - Debug frames that contain detections are saved to [backend/debug_frames](/backend/debug_frames).
 
@@ -109,7 +122,7 @@ No extra model training is required for normal use. Some Ultralytics open-vocabu
 2. The frontend requests match metadata from `/matches`.
 3. The backend opens the configured YouTube stream through `yt-dlp`.
 4. OpenCV reads frames from the direct stream URL.
-5. YOLO / YOLOE detects the ball, while the football and basketball targets are detected by the included custom trained target models.
+5. One unified YOLO detector finds both the ball and the scoring target for the active sport.
 6. The detector emits a `goal` event when the ball enters the target area.
 7. Events and scoring results are pushed to the browser over WebSocket.
 8. Redis is used for lightweight shared state and event delivery.
@@ -136,8 +149,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 ```
-
-`backend/requirements.txt` already includes the dependency required by the Ultralytics open-vocabulary stack, so an extra `CLIP` auto-install on first run should usually not be needed.
 
 ### 4. Run the backend
 
@@ -177,17 +188,7 @@ http://localhost:8000
 - Only the currently active match is processed.
 - Football and basketball streams are configured in [backend/stream.py](/backend/stream.py).
 - Debug frame saving is controlled by `DEBUG_MODE`; when it is enabled, frames with detected objects and goals are saved to [backend/debug_frames](/backend/debug_frames).
-- The repository contains training utilities, but they are optional and not needed to run the app.
-
-## Optional Training Utilities
-
-These files remain in the repository as developer tools:
-
-- backend/train_targets.py
-- backend/prepare_target_dataset.py
-- backend/import_label_studio_yolo.py
-
-They are not required for end users.
+- This repository is currently runtime-focused: included weights are meant to be used as-is, and the old dataset/training helper scripts are no longer part of the repo.
 
 ## Known Limitations
 

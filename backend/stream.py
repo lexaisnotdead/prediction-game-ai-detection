@@ -9,7 +9,6 @@ stream.py — yt-dlp + OpenCV frame generator
 видео/стрима — они на одной шкале времени.
 """
 
-import time
 import threading
 import yt_dlp
 import cv2

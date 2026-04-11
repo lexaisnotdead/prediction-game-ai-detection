@@ -1,0 +1,23 @@
+{
+  "dataset_yaml": "/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/data/unified/dataset.yaml",
+  "training_dataset_yaml": "/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/data/unified/dataset.absolute.yaml",
+  "output_path": "/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/models/trained/unified_detector.pt",
+  "source_weights": "/Users/alekseidiakonov/Documents/Projects/ai-detection-prediction-game/backend/runs/unified_training/predictsport_unified_cpu_fast15/weights/best.pt",
+  "counts": {
+    "train_images": 720,
+    "train_labels": 720,
+    "val_images": 180,
+    "val_labels": 180
+  },
+  "train_args": {
+    "model_name": "yolo11s.pt",
+    "epochs": 15,
+    "imgsz": 512,
+    "batch": 8,
+    "device": "cpu",
+    "workers": 4,
+    "patience": 25,
+    "cache": true,
+    "run_name": "predictsport_unified_cpu_fast15"
+  }
+}
